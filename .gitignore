@@ -1,0 +1,77 @@
+# Environment and secrets
+.env
+.env.*
+!.env.example
+!backend/.env.example
+frontend/.env.local
+*.pem
+.git_backup*/
+
+# Local datasets, exam source files, generated learning media
+data/**
+plan/**
+backend/media/**
+!backend/media/
+!backend/media/.gitkeep
+
+# Database dumps and local databases
+*.sqlite3
+*.sqlite
+*.db
+*.sql
+*.dump
+*.bak
+*.backup
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.Python
+.venv/
+venv/
+env/
+backend/.venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+coverage.xml
+htmlcov/
+
+# Django
+backend/staticfiles/
+
+# Node / Next.js
+node_modules/
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+frontend/.vercel/
+frontend/.turbo/
+frontend/coverage/
+frontend/tsconfig.tsbuildinfo
+frontend/next-env.d.ts
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+frontend/.next-dev*.log
+frontend/next-dev*.log
+
+# Build outputs
+dist/
+build/
+frontend/dist/
+frontend/build/
+
+# IDE / OS
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
