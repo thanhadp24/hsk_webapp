@@ -1,26 +1,48 @@
-from django.db.models import Exists, OuterRef
+from django.db.models import BooleanField, Exists, OuterRef, Value
 from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly
 from rest_framework.response import Response
 
 from .models import UserSavedVocabulary, Vocabulary
-from .serializers import VocabularyDetailSerializer, VocabularyFlashcardSerializer, VocabularySerializer
+from .serializers import (
+    VocabularyDetailSerializer,
+    VocabularyFlashcardSerializer,
+    VocabularyListSerializer,
+)
 
 
 class VocabularyViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = [IsAuthenticatedOrReadOnly]
-    serializer_class = VocabularySerializer
+    serializer_class = VocabularyListSerializer
     search_fields = ("simplified", "traditional", "pinyin", "meaning_vi", "han_viet")
     ordering_fields = ("order_number", "simplified", "created_at")
     ordering = ("order_number", "id")
 
     def get_queryset(self):
-        queryset = (
-            Vocabulary.objects.filter(status=True)
-            .select_related("level_hsk", "topic")
-            .prefetch_related("examples")
-        )
+        queryset = Vocabulary.objects.filter(status=True)
+
+        if self.action == "retrieve":
+            queryset = queryset.select_related("level_hsk", "topic").prefetch_related("examples")
+        elif self.action == "flashcards":
+            queryset = queryset.select_related("level_hsk", "topic").prefetch_related("examples")
+        else:
+            queryset = queryset.only(
+                "id",
+                "level_hsk_id",
+                "topic_id",
+                "simplified",
+                "traditional",
+                "pinyin",
+                "meaning_vi",
+                "han_viet",
+                "word_type",
+                "audio_url",
+                "order_number",
+                "created_at",
+                "status",
+            )
+
         level_hsk_id = self.request.query_params.get("level_hsk_id")
         topic_id = self.request.query_params.get("topic_id")
         word_type = self.request.query_params.get("word_type")
@@ -45,7 +67,7 @@ class VocabularyViewSet(viewsets.ReadOnlyModelViewSet):
             return VocabularyFlashcardSerializer
         if self.action == "retrieve":
             return VocabularyDetailSerializer
-        return VocabularySerializer
+        return VocabularyListSerializer
 
     @action(detail=False, methods=["get"], url_path="flashcards")
     def flashcards(self, request):
@@ -71,10 +93,10 @@ class VocabularyViewSet(viewsets.ReadOnlyModelViewSet):
 
 class SavedVocabularyViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
     permission_classes = [IsAuthenticated]
-    serializer_class = VocabularySerializer
-    search_fields = ("vocabulary__simplified", "vocabulary__pinyin", "vocabulary__meaning_vi")
-    ordering_fields = ("created_at",)
-    ordering = ("-created_at",)
+    serializer_class = VocabularyListSerializer
+    search_fields = ("simplified", "pinyin", "meaning_vi")
+    ordering_fields = ("order_number", "simplified", "created_at")
+    ordering = ("order_number", "id")
 
     def get_queryset(self):
         saved_ids = UserSavedVocabulary.objects.filter(user=self.request.user).values(
@@ -82,6 +104,20 @@ class SavedVocabularyViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
         )
         return (
             Vocabulary.objects.filter(id__in=saved_ids, status=True)
-            .select_related("level_hsk", "topic")
-            .prefetch_related("examples")
+            .only(
+                "id",
+                "level_hsk_id",
+                "topic_id",
+                "simplified",
+                "traditional",
+                "pinyin",
+                "meaning_vi",
+                "han_viet",
+                "word_type",
+                "audio_url",
+                "order_number",
+                "created_at",
+                "status",
+            )
+            .annotate(is_saved=Value(True, output_field=BooleanField()))
         )

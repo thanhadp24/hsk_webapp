@@ -1,7 +1,8 @@
 import os
+import tempfile
 from datetime import timedelta
 from pathlib import Path
-from urllib.parse import unquote, urlparse
+from urllib.parse import parse_qs, unquote, urlparse
 
 from dotenv import load_dotenv
 
@@ -24,12 +25,41 @@ def env_list(name: str, default: str = "") -> list[str]:
     return [item.strip() for item in value.split(",") if item.strip()]
 
 
+def mysql_ssl_options(query_params: dict[str, list[str]]) -> dict:
+    ssl_ca = os.getenv("MYSQL_SSL_CA") or os.getenv("AIVEN_CA_PATH")
+    ssl_ca_cert = os.getenv("MYSQL_SSL_CA_CERT") or os.getenv("AIVEN_CA_CERT")
+    ssl_mode = (
+        os.getenv("MYSQL_SSL_MODE")
+        or query_params.get("ssl-mode", [""])[0]
+        or query_params.get("sslmode", [""])[0]
+    ).lower()
+
+    if ssl_ca_cert and not ssl_ca:
+        ssl_ca = str(Path(tempfile.gettempdir()) / "aiven-ca.pem")
+        Path(ssl_ca).write_text(ssl_ca_cert.replace("\\n", "\n"), encoding="utf-8")
+
+    if ssl_ca:
+        return {"ssl": {"ca": ssl_ca}}
+
+    if ssl_mode in {"required", "require", "verify-ca", "verify-full"}:
+        return {"ssl": {}}
+
+    return {}
+
+
 def database_config_from_url(url: str) -> dict:
     parsed = urlparse(url)
+    query_params = parse_qs(parsed.query)
     engine_map = {
         "mysql": "django.db.backends.mysql",
         "mysql2": "django.db.backends.mysql",
     }
+    options = {
+        "charset": "utf8mb4",
+        "init_command": "SET sql_mode='STRICT_TRANS_TABLES'",
+    }
+    options.update(mysql_ssl_options(query_params))
+
     return {
         "ENGINE": engine_map.get(parsed.scheme, parsed.scheme),
         "NAME": unquote(parsed.path.lstrip("/")),
@@ -39,10 +69,7 @@ def database_config_from_url(url: str) -> dict:
         "PORT": str(parsed.port or ""),
         "CONN_MAX_AGE": 600,
         "CONN_HEALTH_CHECKS": True,
-        "OPTIONS": {
-            "charset": "utf8mb4",
-            "init_command": "SET sql_mode='STRICT_TRANS_TABLES'",
-        },
+        "OPTIONS": options,
     }
 
 
@@ -115,6 +142,7 @@ DATABASES = {
         "OPTIONS": {
             "charset": "utf8mb4",
             "init_command": "SET sql_mode='STRICT_TRANS_TABLES'",
+            **mysql_ssl_options({}),
         },
         "CONN_MAX_AGE": 600,
         "CONN_HEALTH_CHECKS": True,

@@ -81,3 +81,9 @@ B3: python manage.py import_visual_images "..\data\hsk_level updated\image\hsk5"
 B1: cd D:\hsk_webapp\backend
 B2: python manage.py import_exercises "..\data\hsk_level updated\dethi\import\hsk4_de3.json" --dry-run
 B3: python manage.py import_exercises "..\data\hsk_level updated\dethi\import\hsk4_de3.json"
+
+## Trien khai (Deployment)
+
+Chi tiet huong dan trien khai ung dung len cloud:
+- **Koyeb / Render + TiDB / Aiven**: Xem chi tiet tai [plan/alternative_deployments.md](file:///d:/hsk_webapp/plan/alternative_deployments.md).
+- **Vercel + Railway**: Xem chi tiet tai [plan/deployment_vercel_railway.md](file:///d:/hsk_webapp/plan/deployment_vercel_railway.md) (Luu y: Railway yeu cau credit card de su dung thu nghiem).

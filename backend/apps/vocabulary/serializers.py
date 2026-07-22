@@ -45,6 +45,28 @@ class VocabularySerializer(serializers.ModelSerializer):
         ).exists()
 
 
+class VocabularyListSerializer(serializers.ModelSerializer):
+    is_saved = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Vocabulary
+        fields = (
+            "id",
+            "simplified",
+            "traditional",
+            "pinyin",
+            "meaning_vi",
+            "han_viet",
+            "word_type",
+            "audio_url",
+            "order_number",
+            "is_saved",
+        )
+
+    def get_is_saved(self, obj):
+        return bool(getattr(obj, "is_saved", False))
+
+
 class VocabularyDetailSerializer(VocabularySerializer):
     examples = VocabularyExampleSerializer(many=True, read_only=True)
     previous_id = serializers.SerializerMethodField()

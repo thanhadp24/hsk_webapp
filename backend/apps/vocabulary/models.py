@@ -30,6 +30,20 @@ class Vocabulary(models.Model):
     class Meta:
         db_table = "vocabularies"
         ordering = ["order_number", "id"]
+        indexes = [
+            models.Index(
+                fields=["status", "level_hsk", "topic", "order_number", "id"],
+                name="vocab_st_lv_tp_ord_idx",
+            ),
+            models.Index(
+                fields=["status", "level_hsk", "order_number", "id"],
+                name="vocab_st_lv_ord_idx",
+            ),
+            models.Index(
+                fields=["status", "word_type", "order_number", "id"],
+                name="vocab_st_type_ord_idx",
+            ),
+        ]
 
 
 class VocabularyExample(models.Model):
@@ -45,6 +59,12 @@ class VocabularyExample(models.Model):
     class Meta:
         db_table = "vocabulary_examples"
         ordering = ["order_number", "id"]
+        indexes = [
+            models.Index(
+                fields=["vocabulary", "order_number", "id"],
+                name="vocab_ex_vocab_ord_idx",
+            ),
+        ]
 
 
 class UserSavedVocabulary(models.Model):
@@ -58,6 +78,12 @@ class UserSavedVocabulary(models.Model):
 
     class Meta:
         db_table = "user_saved_vocabularies"
+        indexes = [
+            models.Index(
+                fields=["user", "created_at"],
+                name="saved_vocab_user_cr_idx",
+            ),
+        ]
         constraints = [
             models.UniqueConstraint(
                 fields=["user", "vocabulary"], name="unique_saved_vocabulary"
