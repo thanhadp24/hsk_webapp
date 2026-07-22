@@ -1,8 +1,8 @@
 import os
 from datetime import timedelta
 from pathlib import Path
+from urllib.parse import unquote, urlparse
 
-import dj_database_url
 from dotenv import load_dotenv
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
@@ -22,6 +22,28 @@ def env_bool(name: str, default: bool = False) -> bool:
 def env_list(name: str, default: str = "") -> list[str]:
     value = os.getenv(name, default)
     return [item.strip() for item in value.split(",") if item.strip()]
+
+
+def database_config_from_url(url: str) -> dict:
+    parsed = urlparse(url)
+    engine_map = {
+        "mysql": "django.db.backends.mysql",
+        "mysql2": "django.db.backends.mysql",
+    }
+    return {
+        "ENGINE": engine_map.get(parsed.scheme, parsed.scheme),
+        "NAME": unquote(parsed.path.lstrip("/")),
+        "USER": unquote(parsed.username or ""),
+        "PASSWORD": unquote(parsed.password or ""),
+        "HOST": parsed.hostname or "",
+        "PORT": str(parsed.port or ""),
+        "CONN_MAX_AGE": 600,
+        "CONN_HEALTH_CHECKS": True,
+        "OPTIONS": {
+            "charset": "utf8mb4",
+            "init_command": "SET sql_mode='STRICT_TRANS_TABLES'",
+        },
+    }
 
 
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "local-development-secret-key")
@@ -81,11 +103,7 @@ ASGI_APPLICATION = "config.asgi.application"
 DATABASE_URL = os.getenv("DATABASE_URL") or os.getenv("MYSQL_URL")
 
 DATABASES = {
-    "default": dj_database_url.parse(
-        DATABASE_URL,
-        conn_max_age=600,
-        conn_health_checks=True,
-    )
+    "default": database_config_from_url(DATABASE_URL)
     if DATABASE_URL
     else {
         "ENGINE": os.getenv("DB_ENGINE", "django.db.backends.mysql"),
@@ -98,6 +116,8 @@ DATABASES = {
             "charset": "utf8mb4",
             "init_command": "SET sql_mode='STRICT_TRANS_TABLES'",
         },
+        "CONN_MAX_AGE": 600,
+        "CONN_HEALTH_CHECKS": True,
     }
 }
 
