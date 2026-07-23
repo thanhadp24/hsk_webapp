@@ -87,6 +87,10 @@ function isOptionQuestion(question: Question) {
   return Boolean(question.options.length) && question.question_type !== "REORDER_SENTENCE";
 }
 
+function splitReorderTokens(text?: string | null) {
+  return (text ?? "").trim().split(/\s+/).filter(Boolean);
+}
+
 function isAnswered(question: Question, answer?: AnswerDraft) {
   if (!answer) {
     return false;
@@ -578,13 +582,18 @@ function QuestionCard({
   question: Question;
 }) {
   const optionQuestion = isOptionQuestion(question);
+  const reorderQuestion = question.question_type === "REORDER_SENTENCE";
 
   return (
     <article className="learning-card p-5">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="text-sm font-medium text-primary">Câu {question.order_number}</p>
-          <h3 className="mt-2 whitespace-pre-line font-chinese text-xl font-semibold leading-8">{question.question_text}</h3>
+          {reorderQuestion ? (
+            <ReorderTokenList className="mt-3" text={question.question_text} />
+          ) : (
+            <h3 className="mt-2 whitespace-pre-line font-chinese text-xl font-semibold leading-8">{question.question_text}</h3>
+          )}
           {question.question_pinyin ? <p className="mt-2 text-sm text-muted-foreground">{question.question_pinyin}</p> : null}
         </div>
         <AudioButton text={question.question_text} url={question.audio_url} />
@@ -592,11 +601,12 @@ function QuestionCard({
 
       {question.image_url ? <img alt={`Câu ${question.order_number}`} className="mt-4 max-h-80 rounded-lg object-contain" src={question.image_url} /> : null}
 
-      {question.question_type === "REORDER_SENTENCE" && question.options.length ? (
+      {reorderQuestion && question.options.length ? (
         <div className="mt-4 grid gap-2 md:grid-cols-3">
           {question.options.map((option) => (
             <div className="rounded-lg border border-border bg-muted px-3 py-2 text-sm" key={option.id}>
-              <span className="font-semibold">{String.fromCharCode(64 + option.order_number)}.</span> {option.option_text}
+              <span className="mb-2 block font-semibold">{String.fromCharCode(64 + option.order_number)}.</span>
+              <ReorderTokenList compact text={option.option_text} />
             </div>
           ))}
         </div>
@@ -640,5 +650,36 @@ function QuestionCard({
         </div>
       )}
     </article>
+  );
+}
+
+function ReorderTokenList({
+  className,
+  compact,
+  text,
+}: {
+  className?: string;
+  compact?: boolean;
+  text?: string | null;
+}) {
+  const tokens = splitReorderTokens(text);
+  if (!tokens.length) {
+    return null;
+  }
+
+  return (
+    <div className={cn("flex flex-wrap gap-2", className)}>
+      {tokens.map((token, index) => (
+        <span
+          className={cn(
+            "inline-flex items-center rounded-lg border border-border bg-white font-chinese font-semibold shadow-sm",
+            compact ? "min-h-8 px-2.5 py-1 text-base" : "min-h-10 px-3 py-1.5 text-xl",
+          )}
+          key={`${token}-${index}`}
+        >
+          {token}
+        </span>
+      ))}
+    </div>
   );
 }
